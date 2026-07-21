@@ -13,7 +13,7 @@ The lab also includes two real troubleshooting scenarios:
 - A bad redirect target that created a repeating URL path.
 - A macOS DNS resolver-cache issue where `dig` worked while `curl` and `ping` could not resolve the hostname.
 
-## Final Architecture
+## Architecture
 
 ```text
 User enters https://edwinlab.cloud or https://www.edwinlab.cloud
@@ -39,7 +39,7 @@ I bought `edwinlab.cloud` through IONOS. At this point, IONOS acted as both the 
 
 #### Screenshot: IONOS domain overview
 
-![IONOS domain overview](screenshots/01-ionos-domain.png)
+![IONOS domain overview](DNS-Screenshots/IONOS-DNS-Records.png)
 
 > Capture the IONOS domain page showing `edwinlab.cloud` as registered and active. Hide customer numbers, billing details, account identifiers, and unrelated domains.
 
@@ -47,10 +47,10 @@ I bought `edwinlab.cloud` through IONOS. At this point, IONOS acted as both the 
 
 I configured Zoho Mail before migrating DNS. The email setup required several DNS records:
 
-- **MX records** route inbound email to Zoho Mail.
-- **SPF TXT record** identifies systems authorized to send mail for the domain.
-- **DKIM TXT record** allows receiving systems to verify Zoho's cryptographic signature.
-- **Verification record** proves ownership of the domain to Zoho.
+- **MX records** route inbound email to Zoho Mail servers
+- **SPF TXT record** identifies systems authorized to send mail for the domain
+- **DKIM TXT record** allows receiving systems to verify Zoho's crypto signature
+- **Verification record** proves ownership of the domain to Zoho
 
 #### Screenshot: Zoho Mail DNS requirements
 
