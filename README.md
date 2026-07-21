@@ -39,37 +39,24 @@ I bought `edwinlab.cloud` through IONOS. At this point, IONOS acted as both the 
 
 #### Screenshot: IONOS domain overview
 
-![IONOS domain overview](DNS-Screenshots/IONOS-DNS-Records.png)
-
-> Capture the IONOS domain page showing `edwinlab.cloud` as registered and active. Hide customer numbers, billing details, account identifiers, and unrelated domains.
+![IONOS domain overview](/Screenshots/IONOS-DNS-Dashboard.png)
 
 ### 2. Configure Zoho Mail
 
-I configured Zoho Mail before migrating DNS. The email setup required several DNS records:
+I configured Zoho Mail before migrating DNS. The email setup required several DNS TXT records to be moved over to IONOS:
 
 - **MX records** route inbound email to Zoho Mail servers
 - **SPF TXT record** identifies systems authorized to send mail for the domain
 - **DKIM TXT record** allows receiving systems to verify Zoho's crypto signature
 - **Verification record** proves ownership of the domain to Zoho
 
-#### Screenshot: Zoho Mail DNS requirements
-
-![Zoho Mail DNS requirements](screenshots/02-zoho-dns-requirements.png)
-
-> Capture Zoho's setup page showing its required MX, SPF, DKIM, or verification records. Do not expose passwords, recovery details, or API keys.
-
 ### 3. Add the Domain to Cloudflare
 
-I added the domain to Cloudflare. Cloudflare scanned the existing DNS zone and imported the available records. Before changing nameservers, I reviewed the imported records to confirm that the Zoho Mail records were present.
-
-> [!CAUTION]
-> Changing authoritative nameservers changes which provider answers for the entire DNS zone. Missing MX, SPF, or DKIM records can interrupt email delivery or reduce deliverability.
+I added the DNS records manually to Cloudflare. 
 
 #### Screenshot: Imported DNS records in Cloudflare
 
-![Imported DNS records in Cloudflare](screenshots/03-cloudflare-imported-records.png)
-
-> Show the Zoho MX and TXT records in Cloudflare before changing the nameservers at IONOS. Crop unrelated records and hide sensitive verification values when appropriate.
+![Imported DNS records in Cloudflare](Screenshots/Cloudflare-DNS-Records.png)
 
 ### 4. Delegate Authoritative DNS to Cloudflare
 
@@ -81,42 +68,38 @@ Verification command:
 dig NS edwinlab.cloud
 ```
 
+#### Screenshot: Cloudflare nameserver confirmation in terminal
+
+![Nameserver verification in terminal](Screenshots/Cloudflare-Dig-NS.png)
+
 #### Screenshot: Cloudflare nameserver delegation
 
-![Cloudflare nameserver delegation](screenshots/04-cloudflare-active-nameservers.png)
-
-> Capture either the IONOS nameserver settings showing Cloudflare's nameservers or the Cloudflare Overview page showing the zone as Active. Hide registrar account details.
+![Cloudflare nameserver delegation](Screenshots/Cloudflare-NS-IONOS.png)
 
 ### 5. Verify Zoho Mail Records after Migration
 
 After Cloudflare became authoritative, I checked the Zoho records again and verified that email still worked. This confirmed that the email provider could remain Zoho while DNS authority moved to Cloudflare.
 
-#### Screenshot: Active Zoho records in Cloudflare
-
-![Active Zoho records in Cloudflare](screenshots/05-zoho-records-in-cloudflare.png)
-
-> Show the active MX, SPF, and DKIM records. Crop the image to the relevant rows and exclude account-level controls.
-
 ### 6. Create a Proxied Apex Record
 
-I created a proxied A record for the apex hostname. Cloudflare represents the apex domain with `@`.
+I created proxied A records for both the apex and the Fully Qualified Domain Name (FQDN) hostnames. Cloudflare represents the apex domain with `@`.
 
 | Type | Name | IPv4 address | Proxy status |
 |---|---|---|---|
 | A | `@` | `192.0.2.1` | Proxied — orange cloud |
+| A | `www` | `192.0.2.1` | Proxied - orange cloud |
 
-`192.0.2.1` belongs to a range reserved for documentation. In this lab, the origin was not expected to serve content. Because the record was proxied, Cloudflare received the request and returned the redirect before contacting the placeholder origin.
+`192.0.2.1` belongs to a range reserved for documentation and testing. In this lab, the origin was not expected to serve content. Because the record was proxied, Cloudflare received the request and returned the redirect before contacting the placeholder origin.
 
 #### Screenshot: Proxied apex A record
 
-![Proxied apex A record](screenshots/06-proxied-apex-record.png)
-
-> Show the `@` A record pointing to `192.0.2.1` with proxying enabled. Crop unrelated mail and verification records.
+![Proxied apex A records](Screenshots/A-Records.png)
 
 ### 7. Create the HTTP Redirect Rule
 
-I created a Cloudflare Redirect Rule with the following configuration:
+I created a Cloudflare Redirect Rule with the following configurations:
 
+## For the apex domain
 ```text
 Incoming request condition:
 (http.host eq "edwinlab.cloud")
@@ -133,21 +116,32 @@ Status code:
 
 #### Screenshot: Cloudflare Redirect Rule
 
-![Cloudflare Redirect Rule](screenshots/07-redirect-rule.png)
+![Cloudflare Apex Redirect Rule](Screenshots/Apex-Redirect.png)
 
-> Show the hostname condition, complete destination URL, and `301` status code. Hide account IDs, zone IDs, API tokens, and unrelated rules.
+## For the Fully Qualified Domain Name
+```text
+Incoming request condition:
+(http.host eq "edwinlab.cloud")
+
+Action:
+Static redirect
+
+Destination URL:
+https://github.com/edwinhchun
+
+Status code:
+301 - Permanent Redirect
+```
+
+#### Screenshot: Cloudflare Redirect Rule
+
+![Cloudflare FQDN Redirect Rule](Screenshots/FQDN-Redirect.png)
 
 ## Verification
 
 ### Browser Test
 
 Opening `https://edwinlab.cloud` redirected the browser to my GitHub profile. This confirmed the complete user-facing path from DNS resolution to the Cloudflare edge redirect.
-
-#### Screenshot: Successful browser redirect
-
-![Successful browser redirect](screenshots/08-browser-success.png)
-
-> Include the browser address bar when possible. Hide private bookmarks, unrelated tabs, browser profiles, and private GitHub content.
 
 ### DNS Verification with `dig`
 
@@ -169,9 +163,10 @@ dig @1.1.1.1 edwinlab.cloud
 
 #### Screenshot: `dig` results
 
-![dig results](screenshots/09-dig-results.png)
+![dig results](Screenshots/dig-FQDN-result.png)
 
-> Show the A-record response and the authoritative NS records. Crop local usernames or paths if they appear in the prompt.
+![dig results](Screenshots/dig-apex-result.png)
+
 
 ### HTTP Verification with `curl`
 
@@ -208,9 +203,8 @@ server: cloudflare
 
 #### Screenshot: Successful `curl` response
 
-![Successful curl response](screenshots/10-curl-301-response.png)
+![Successful curl response](Screenshots/curl.png)
 
-> Show the HTTP `301` response and the `Location` header. Review the output for cookies or unique identifiers before publishing.
 
 ## Troubleshooting and Root-Cause Analysis
 
@@ -253,12 +247,6 @@ https://github.com/edwinhchun
 
 Including `https://` tells Cloudflare that `github.com` is a separate hostname rather than a path on the current domain.
 
-#### Screenshot: Redirect error and corrected rule
-
-![Redirect error and corrected rule](screenshots/11-redirect-loop-fix.png)
-
-> A before-and-after image can show the malformed expanding URL and the corrected destination. Crop browser history and unrelated account information.
-
 ### Issue 3: `dig` Worked while `curl` and `ping` Failed
 
 During terminal testing, `dig` returned valid DNS answers, but `ping` and `curl` reported that the hostname could not be resolved.
@@ -279,12 +267,6 @@ sudo killall -HUP mDNSResponder
 
 Afterward, `ping` and `curl` successfully resolved the hostname.
 
-#### Screenshot: macOS resolver troubleshooting
-
-![macOS resolver troubleshooting](screenshots/12-macos-dns-troubleshooting.png)
-
-> Show three stages: `dig` resolving, `curl` or `ping` failing, and `curl` succeeding after the cache flush. Crop local usernames, computer names, and unrelated terminal history.
-
 ## What Each Test Proved
 
 | Test | Primary question | What success proved |
@@ -296,17 +278,3 @@ Afterward, `ping` and `curl` successfully resolved the hostname.
 | `curl -L` | Where does the redirect chain end? | The client reached the GitHub destination |
 | `curl -v` | Where in DNS, TCP, TLS, or HTTP does the request fail? | The detailed connection sequence could be inspected |
 | Browser | Does the complete user experience work? | A normal client could resolve, connect, receive the redirect, and load the destination |
-
-## Key Lessons Learned
-
-- The registrar and authoritative DNS provider can be different companies.
-- Changing nameservers changes the authoritative source for the entire DNS zone.
-- Email can remain hosted by Zoho while authoritative DNS moves to Cloudflare.
-- MX, SPF, DKIM, and verification records must be preserved during a DNS migration.
-- An apex record represented by `@` applies to `edwinlab.cloud`, not automatically to `www.edwinlab.cloud`.
-- CNAME flattening allows an apex hostname to reference another hostname, but it does not make DNS understand URL paths.
-- A CNAME is a DNS alias, not an HTTP redirect.
-- Cloudflare Redirect Rules operate at the HTTP layer and require requests to reach a proxied hostname.
-- A fully qualified redirect target must include the URL scheme, such as `https://`.
-- Troubleshooting should proceed layer by layer: DNS, connectivity, TLS, and HTTP.
-- Browser success does not always prove the operating-system resolver is healthy because caches and resolver paths can differ.
