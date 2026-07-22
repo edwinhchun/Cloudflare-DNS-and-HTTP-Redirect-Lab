@@ -197,8 +197,8 @@ Expected redirect evidence:
 
 ```http
 HTTP/2 301
-location: https://github.com/edwinhchun
-server: cloudflare
+Location: https://github.com/edwinhchun
+Server: Cloudflare
 ```
 
 #### Screenshot: Successful `curl` response
