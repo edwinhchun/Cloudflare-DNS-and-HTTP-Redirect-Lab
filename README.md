@@ -196,7 +196,7 @@ curl -IL https://edwinlab.cloud
 Expected redirect evidence:
 
 ```http
-HTTP 1.1 301
+HTTP/1.1 301
 Location: https://github.com/edwinhchun
 Server: Cloudflare
 ```
